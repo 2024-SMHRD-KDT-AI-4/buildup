@@ -2,3 +2,4 @@ fastapi
 uvicorn[standard]
 databases[mysql]
 aiomysql
+argon2-cffi
