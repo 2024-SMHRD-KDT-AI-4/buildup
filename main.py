@@ -92,10 +92,7 @@ async def login(login_data: LoginRequest):  # 변수명을 login_data로 변경
     
     # SQL 쿼리 작성
     sql = """
-    SELECT tb_user.*, tb_admin.admin_id
-    FROM tb_user
-    LEFT JOIN tb_admin ON tb_user.user_id = tb_admin.user_id
-    WHERE tb_user.user_id = :user_id AND tb_user.user_pw = :user_pw;
+    SELECT * FROM tb_user WHERE tb_user.user_id = :user_id AND tb_user.user_pw = :user_pw;
     """
     
     # SQL 실행
@@ -105,7 +102,7 @@ async def login(login_data: LoginRequest):  # 변수명을 login_data로 변경
         user = result[0]  # 첫 번째 사용자 정보
         
         # 동적으로 role 설정 (관리자인지 사원인지)
-        role = "관리자" if user["admin_id"] else "사원"
+        role = "사용자"
 
         # 응답에서 비밀번호를 제외한 정보만 반환
         return {
@@ -115,7 +112,6 @@ async def login(login_data: LoginRequest):  # 변수명을 login_data로 변경
                 "id": user["user_id"],
                 "name": user["user_nickname"],
                 "role": role,
-                "empID": ""
             }
         }
     else:
