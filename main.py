@@ -4,6 +4,9 @@ from database import database  # database.py에서 인스턴스를 가져오기
 from sqlalchemy import text
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
+from argon2 import PasswordHasher
+from argon2 import exceptions
+
 import os
 import logging
 
@@ -18,6 +21,8 @@ app.add_middleware(
     allow_methods=["*"],  # 모든 HTTP 메서드 허용.
     allow_headers=["*"],  # 모든 헤더 허용.
 )
+
+ps = PasswordHasher()
 
 # 회원가입 요청 데이터 모델
 class JoinRequest(BaseModel):
@@ -56,16 +61,6 @@ async def shutdown():
 
 build_path = os.path.join(os.path.dirname(__file__), "../build")
 
-# app.mount(
-#     "/", 
-#     StaticFiles(directory=os.path.abspath(build_path), html=True), 
-#     name="static"
-# )
-# # React 빌드 파일 서빙
-# app.mount("/", StaticFiles(directory="C:/Users/User/Desktop/buildup/build", html=True), name="static")
-
-
-
 @app.get("/")
 async def user():
     
@@ -88,15 +83,15 @@ async def imgur_callback(request: Request):
 
 @app.post("/user/login", response_model=LoginResponse)
 async def login(login_data: LoginRequest):  # 변수명을 login_data로 변경
-    print("Logging in with:", login_data.user_id)
-    
+    # print("Logging in with:", login_data.user_id)
+    argon_login_pw = ps.hash(login_data.user_pw)
     # SQL 쿼리 작성
     sql = """
     SELECT * FROM tb_user WHERE tb_user.user_id = :user_id AND tb_user.user_pw = :user_pw;
     """
     
     # SQL 실행
-    result = await database.fetch_all(sql, values={"user_id": login_data.user_id, "user_pw": login_data.user_pw})
+    result = await database.fetch_all(sql, values={"user_id": login_data.user_id, "user_pw": argon_login_pw})
 
     if result:
         user = result[0]  # 첫 번째 사용자 정보
@@ -119,7 +114,7 @@ async def login(login_data: LoginRequest):  # 변수명을 login_data로 변경
 
 @app.post("/user/join", response_model=JoinResponse)
 async def join(join_data: JoinRequest):
-    print("join in with:", join_data.user_id)
+    # print("join in with:", join_data.user_id)
 
     # Check if user_id or user_email already exists
     check_sql = """
@@ -129,6 +124,9 @@ async def join(join_data: JoinRequest):
     if existing_user:
         raise HTTPException(status_code=409, detail="이미 존재하는 아이디 또는 이메일입니다.") # 409 Conflict
 
+    argon_join_pw = ps.hash(join_data.user_pw)
+
+    
     # SQL 쿼리 작성 (해싱 제외)
     sql = """
     INSERT INTO tb_user(user_id, user_pw, user_nickname, user_email)
@@ -138,7 +136,7 @@ async def join(join_data: JoinRequest):
     try:
         await database.execute(sql, values={
             "user_id": join_data.user_id,
-            "user_pw": join_data.user_pw,
+            "user_pw": argon_join_pw,
             "user_nickname": join_data.user_nickname,
             "user_email": join_data.user_email
         })
