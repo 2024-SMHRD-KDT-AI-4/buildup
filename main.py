@@ -84,20 +84,22 @@ async def imgur_callback(request: Request):
 @app.post("/user/login", response_model=LoginResponse)
 async def login(login_data: LoginRequest):  # 변수명을 login_data로 변경
     print("Logging in with:", login_data.user_id)
-    print("Logging in with:", login_data.user_pw)
-    
-    argon_login_pw = ps.hash(login_data.user_pw)
+
     # SQL 쿼리 작성
     sql = """
-    SELECT * FROM tb_user WHERE tb_user.user_id = :user_id AND tb_user.user_pw = :user_pw;
+    SELECT user_id, user_pw, user_nickname FROM tb_user WHERE user_id = :user_id
     """
     
     # SQL 실행
-    result = await database.fetch_all(sql, values={"user_id": login_data.user_id, "user_pw": argon_login_pw})
+    user = await database.fetch_one(sql, values={"user_id": login_data.user_id})
 
-    if result:
-        user = result[0]  # 첫 번째 사용자 정보
-        
+    if not user:
+        raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 잘못되었습니다.")
+    
+    try:
+        # 입력된 비밀번호와 저장된 해싱된 비밀번호 비교
+        ps.verify(user["user_pw"], login_data.user_pw)
+
         # 동적으로 role 설정 (관리자인지 사원인지)
         role = "사용자"
 
@@ -111,8 +113,9 @@ async def login(login_data: LoginRequest):  # 변수명을 login_data로 변경
                 "role": role,
             }
         }
-    else:
+    except exceptions.VerifyMismatchError:
         raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 잘못되었습니다.")
+
 
 @app.post("/user/join", response_model=JoinResponse)
 async def join(join_data: JoinRequest):
