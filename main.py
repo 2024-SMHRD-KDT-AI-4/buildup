@@ -83,7 +83,9 @@ async def imgur_callback(request: Request):
 
 @app.post("/user/login", response_model=LoginResponse)
 async def login(login_data: LoginRequest):  # 변수명을 login_data로 변경
-    # print("Logging in with:", login_data.user_id)
+    print("Logging in with:", login_data.user_id)
+    print("Logging in with:", login_data.user_pw)
+    
     argon_login_pw = ps.hash(login_data.user_pw)
     # SQL 쿼리 작성
     sql = """
