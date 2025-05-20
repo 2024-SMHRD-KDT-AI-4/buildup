@@ -2,11 +2,11 @@ from fastapi import FastAPI, HTTPException ,Request
 from pydantic import BaseModel
 from database import database  # database.py에서 인스턴스를 가져오기
 from sqlalchemy import text
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from argon2 import PasswordHasher
 from argon2 import exceptions
 
+import boto3
 import os
 import logging
 

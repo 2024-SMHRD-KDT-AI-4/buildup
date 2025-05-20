@@ -3,3 +3,4 @@ uvicorn[standard]
 databases[mysql]
 aiomysql
 argon2-cffi
+boto3
