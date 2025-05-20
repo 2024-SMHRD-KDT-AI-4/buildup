@@ -42,8 +42,13 @@ ps = PasswordHasher()
 # Boto3 S3 클라이언트 생성 (AWS와 상호작용하기 위한 객체)
 s3_client = boto3.client('s3')
 
-# 환경 변수에서 S3 버킷 이름 가져오기
-S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
+# 환경 변수에서 자격 증명 가져오기 (권장)
+s3_client = boto3.client(
+    's3',
+    aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID"),
+    aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY"),
+    region_name=os.environ.get("AWS_REGION")
+)
 
 if not S3_BUCKET_NAME:
     raise ValueError("S3_BUCKET_NAME 환경 변수가 설정되지 않았습니다.")
