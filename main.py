@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException ,Request
+from fastapi import FastAPI, HTTPException ,Request, File, UploadFile
 from database import database  # database.py에서 인스턴스를 가져오기
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +19,7 @@ from schemas import (
     LoginResponse,
     PresignedUrlRequest,
     PresignedUrlResponse,
+    ImageUploadResponse
 )
 
 # 로깅 설정
@@ -34,10 +35,53 @@ app.add_middleware(
 )
 
 ps = PasswordHasher()
-S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME") # .env 파일에서 버킷할당
+
+
+
+# 이미지 업로드 단
+# Boto3 S3 클라이언트 생성 (AWS와 상호작용하기 위한 객체)
+s3_client = boto3.client('s3')
+
+# 환경 변수에서 S3 버킷 이름 가져오기
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME")
 
 if not S3_BUCKET_NAME:
     raise ValueError("S3_BUCKET_NAME 환경 변수가 설정되지 않았습니다.")
+
+
+# 이미지 업로드 API 엔드포인트 정의
+@app.post("/upload/image", response_model=ImageUploadResponse)
+async def upload_image(file: Annotated[UploadFile, File()]):
+    try:
+        # UploadFile 객체에서 이미지 파일 내용 읽기 (비동기 방식)
+        contents = await file.read()
+        # 업로드된 파일의 원래 이름 가져오기
+        file_name = file.filename
+        # S3에 저장될 객체 키 생성 (images/ 폴더 아래 원래 파일 이름으로 저장)
+        s3_key = f"images/{file_name}"
+
+        # Boto3 클라이언트를 사용하여 S3에 객체(이미지) 업로드
+        s3_client.put_object(
+            Bucket=S3_BUCKET_NAME,  # 대상 S3 버킷 이름
+            Key=s3_key,             # S3에 저장될 객체 키
+            Body=contents           # 업로드할 이미지 파일 내용 (bytes)
+        )
+
+        # 업로드 성공 시 S3 이미지 URL 생성
+        s3_url = f"https://{S3_BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
+
+        # 성공 응답 반환
+        return {
+            "success": True,
+            "message": f"이미지 '{file_name}' 업로드 성공",
+            "s3_url": s3_url
+        }
+    except Exception as e:
+        # 오류 발생 시 로깅
+        logging.error(f"S3 이미지 업로드 오류: {e}")
+        # HTTP 예외 발생 (500 Internal Server Error)
+        raise HTTPException(status_code=500, detail="이미지 업로드 실패")
+
 
 @app.post("/get/presigned-url", response_model=PresignedUrlResponse)
 async def get_presigned_url(request_data: PresignedUrlRequest):
@@ -66,6 +110,14 @@ async def shutdown():
 
 
 build_path = os.path.join(os.path.dirname(__file__), "../build")
+
+
+
+
+
+
+# 유저 접속 단
+
 
 @app.get("/")
 async def user():
