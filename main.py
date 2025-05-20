@@ -1,14 +1,25 @@
 from fastapi import FastAPI, HTTPException ,Request
-from pydantic import BaseModel
 from database import database  # database.py에서 인스턴스를 가져오기
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 from argon2 import PasswordHasher
 from argon2 import exceptions
+from dotenv import load_dotenv
+load_dotenv()
 
 import boto3
 import os
 import logging
+from typing import Annotated
+# 수정된 임포트 (직접 임포트)
+from schemas import (
+    JoinRequest,
+    JoinResponse,
+    LoginRequest,
+    LoginResponse,
+    PresignedUrlRequest,
+    PresignedUrlResponse,
+)
 
 # 로깅 설정
 logging.basicConfig(level=logging.DEBUG)
@@ -23,29 +34,24 @@ app.add_middleware(
 )
 
 ps = PasswordHasher()
+S3_BUCKET_NAME = os.environ.get("S3_BUCKET_NAME") # .env 파일에서 버킷할당
 
-# 회원가입 요청 데이터 모델
-class JoinRequest(BaseModel):
-    user_id: str
-    user_pw: str
-    user_nickname: str
-    user_email: str
+if not S3_BUCKET_NAME:
+    raise ValueError("S3_BUCKET_NAME 환경 변수가 설정되지 않았습니다.")
 
-# 회원가입 응답 데이터 모델
-class JoinResponse(BaseModel):
-    success: bool
-    message: str
+@app.post("/get/presigned-url", response_model=PresignedUrlResponse)
+async def get_presigned_url(request_data: PresignedUrlRequest):
+    try:
+        presigned_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': S3_BUCKET_NAME, 'Key': request_data.object_key},
+            ExpiresIn=3600  # URL 유효 시간 (초) - 필요에 따라 조정
+        )
+        return {"success": True, "message": "서명된 URL 생성 성공", "presigned_url": presigned_url}
+    except Exception as e:
+        logging.error(f"서명된 URL 생성 오류: {e}")
+        raise HTTPException(status_code=500, detail="서명된 URL 생성 실패")
 
-# 로그인 요청 데이터 모델
-class LoginRequest(BaseModel):
-    user_id: str
-    user_pw: str
-
-# 로그인 응답 데이터 모델
-class LoginResponse(BaseModel):
-    success: bool
-    message: str
-    user: dict = None
 
 @app.on_event("startup")
 async def startup():
