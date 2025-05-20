@@ -5,3 +5,4 @@ aiomysql
 argon2-cffi
 boto3
 python-dotenv
+python-multipart
