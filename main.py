@@ -50,7 +50,7 @@ if not S3_BUCKET_NAME:
 
 
 # 이미지 업로드 API 엔드포인트 정의
-@app.post("/upload/image", response_model=ImageUploadResponse)
+@app.post("/upload/image_base64", response_model=ImageUploadResponse)
 async def upload_image(file: Annotated[UploadFile, File()]):
     try:
         # UploadFile 객체에서 이미지 파일 내용 읽기 (비동기 방식)
