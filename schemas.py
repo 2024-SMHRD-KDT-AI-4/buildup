@@ -46,6 +46,9 @@ class ChatBotResponse(BaseModel):
     chatbot_text: str
     created_at: datetime   # 데이터베이스의 TIMESTAMP가 Python의 datetime 객체로 매핑됩니다.
 
+    class Config:
+        arbitrary_types_allowed = True
+
 
 # 서명된 URL 요청 모델
 class PresignedUrlRequest(BaseModel):
