@@ -1,6 +1,7 @@
 import datetime
 from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
+from datetime import datetime # <--- ENSURE YOU HAVE THIS SPECIFIC IMPORT
 
 # 회원가입 요청 데이터 모델
 class JoinRequest(BaseModel):
