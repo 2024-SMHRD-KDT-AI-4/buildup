@@ -1,5 +1,5 @@
 import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
 
 # 회원가입 요청 데이터 모델
@@ -31,7 +31,8 @@ class ChatBotRequest(BaseModel):
     # 'chatbot_role'은 항상 "나"일 것이므로, 기본값을 설정하고 클라이언트가 변경할 수 없게 합니다.
     # 클라이언트가 요청 시 이 값을 보내지 않으면 자동으로 "나"가 됩니다.
     # 만약 다른 값을 보내면 Pydantic 유효성 검사에서 오류가 발생합니다.
-    chatbot_role: str = Field("나", const=True)
+    chatbot_role: str = Literal["나"]
+
     chatbot_text: str
     # created_at 필드는 서버(DB)에서 자동으로 생성하므로, 요청 모델에서는 제거합니다.
 
@@ -41,7 +42,7 @@ class ChatBotResponse(BaseModel):
     user_id: str
     # 'chatbot_role'은 "나" 또는 "챗봇"이 될 수 있으므로, 단순히 str로 두는 것이 유연합니다.
     # 실제 값은 DB에서 가져온 데이터에 따라 결정됩니다.
-    chatbot_role: str = Field("챗봇", const=True)
+    chatbot_role: str = Literal["챗봇"]
     chatbot_text: str
     created_at: datetime   # 데이터베이스의 TIMESTAMP가 Python의 datetime 객체로 매핑됩니다.
 
