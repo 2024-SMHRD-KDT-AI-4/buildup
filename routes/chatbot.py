@@ -2,7 +2,7 @@ import datetime
 from fastapi import APIRouter, HTTPException, exceptions
 
 # 수정된 임포트 (직접 임포트)
-import database
+from database import database  # database.py에서 인스턴스를 가져오기
 from schemas import (
     ChatBotRequest,
     ChatBotResponse,
