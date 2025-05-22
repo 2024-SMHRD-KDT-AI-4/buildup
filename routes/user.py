@@ -14,6 +14,7 @@ from schemas import (
     JoinResponse,
     LoginRequest,
     LoginResponse,
+    User,
 )
 
 
@@ -23,7 +24,7 @@ ps = PasswordHasher()
 # 유저 접속 단
 
 @router.post("/login", response_model=LoginResponse)
-async def login(login_data: LoginRequest):  # 변수명을 login_data로 변경
+async def login(login_data: LoginRequest):
     print("Logging in with:", login_data.user_id)
 
     # SQL 쿼리 작성
@@ -42,18 +43,18 @@ async def login(login_data: LoginRequest):  # 변수명을 login_data로 변경
         ps.verify(user["user_pw"], login_data.user_pw)
 
         # 동적으로 role 설정 (관리자인지 사원인지)
-        role = "사용자"
+        role = "사용자"  # 실제 로직에 따라 "관리자"로 설정 가능
 
-        # 응답에서 비밀번호를 제외한 정보만 반환
-        return {
-            "success": True,
-            "message": "로그인 성공",
-            "user": {
-                "id": user["user_id"],
-                "name": user["user_nickname"],
-                "role": role,
-            }
-        }
+        # LoginResponse에 맞게 반환
+        return LoginResponse(
+            success=True,
+            message="로그인 성공",
+            user=User(
+                id=user["user_id"],
+                nickname=user["user_nickname"],
+                role=role
+            )
+        )
     except exceptions.VerifyMismatchError:
         raise HTTPException(status_code=401, detail="아이디 또는 비밀번호가 잘못되었습니다.")
 
