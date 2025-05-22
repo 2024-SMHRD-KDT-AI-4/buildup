@@ -8,10 +8,16 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
+# 로깅 설정
 import logging
 
-# 로깅 설정
-logging.basicConfig(level=logging.DEBUG)
+
+
+# 기본 로깅 레벨을 WARNING으로 설정
+# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
+
+
 
 # FastAPI 인스턴스 생성
 app = FastAPI()
