@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException ,Request
 from routes.user import router as user_router  # routes 폴더에서 user.py의 router 가져오기
 from routes.upload import router as upload_router  # routes 폴더에서 user.py의 router 가져오기
+from routes.chatbot import router as chatbot_router  # routes 폴더에서 user.py의 router 가져오기
 from database import database  # database.py에서 인스턴스를 가져오기
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,16 +9,23 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
+# 로깅 설정
 import logging
 
-# 로깅 설정
-logging.basicConfig(level=logging.DEBUG)
+
+
+# 기본 로깅 레벨을 WARNING으로 설정
+# logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.WARNING)
+
+
 
 # FastAPI 인스턴스 생성
 app = FastAPI()
 # 라우터 등록
 app.include_router(user_router, prefix="/user")
 app.include_router(upload_router, prefix="/images")
+app.include_router(chatbot_router, prefix="/chatbot")
 
 app.add_middleware(
     CORSMiddleware,

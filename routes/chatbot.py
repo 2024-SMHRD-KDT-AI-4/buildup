@@ -2,7 +2,7 @@ import datetime
 from fastapi import APIRouter, HTTPException, exceptions
 
 # 수정된 임포트 (직접 임포트)
-import database
+from database import database  # database.py에서 인스턴스를 가져오기
 from schemas import (
     ChatBotRequest,
     ChatBotResponse,
@@ -27,19 +27,19 @@ router = APIRouter()
 
 @router.post("/dialogue", response_model=ChatBotResponse)
 async def dialogue_handler(question_data: ChatBotRequest):
-    # ... (사용자 질문 저장 로직은 동일) ...
+
+    print("Received data:", question_data)
     user_insert_sql = """
-    INSERT INTO tb_chatbot(user_id, chatbot_role, chatbot_text)
-    VALUES (:user_id, :chatbot_role, :chatbot_text)
+    INSERT INTO tb_chatbot(user_id, chatbot_role, chatbot_text, created_at)
+    VALUES (:user_id, :chatbot_role, :chatbot_text, :created_at)
     """
     try:
-        current_timestamp = datetime.now() # 현재 시각을 직접 생성    
 
         await database.execute(user_insert_sql, values={
             "user_id": question_data.user_id,
             "chatbot_role": question_data.chatbot_role, # "나"
             "chatbot_text": question_data.chatbot_text,
-            "created_at": current_timestamp, # Python에서 생성한 시간 사용
+            "created_at": question_data.created_at, # Python에서 생성한 시간 사용
         })
     except Exception as e:
         print(f"사용자 메시지 저장 중 데이터베이스 오류 발생: {e}")
@@ -58,14 +58,9 @@ async def dialogue_handler(question_data: ChatBotRequest):
     # 이때, created_at 값을 Python 코드에서 직접 생성하여 사용할 수 있습니다.
     current_timestamp = datetime.now() # 현재 시각을 직접 생성
 
-    # 연, 월, 일 추출
-    current_year = current_timestamp.year
-    current_month = current_timestamp.month
-    current_day = current_timestamp.day
-
     chatbot_insert_sql = """
-    INSERT INTO tb_chatbot(user_id, chatbot_role, chatbot_text, created_at, created_year, created_month, created_day)
-    VALUES (:user_id, :chatbot_role, :chatbot_text, :created_at, :created_year, :created_month, :created_day)
+    INSERT INTO tb_chatbot(user_id, chatbot_role, chatbot_text, created_at)
+    VALUES (:user_id, :chatbot_role, :chatbot_text, :created_at)
     """
     try:
         # DB에 created_at 값을 명시적으로 전달합니다.
@@ -75,9 +70,6 @@ async def dialogue_handler(question_data: ChatBotRequest):
             "chatbot_role": "챗봇", # 여기서는 챗봇의 답변이므로 "챗봇" 문자열을 직접 사용합니다.
             "chatbot_text": chatbot_answer_text,
             "created_at": current_timestamp, # Python에서 생성한 시간 사용
-            "created_year": current_year,
-            "created_month": current_month,
-            "created_day": current_day,
         })
 
         # DB 재조회 없이 바로 응답 모델 구성 및 반환
@@ -125,7 +117,11 @@ async def get_dialogue_history(user_id: str): # 함수 매개변수로 user_id�
         ]
 
         # DialogueHistoryResponse 모델로 감싸서 반환
-        return DialogueHistoryResponse(history=history)
+        return DialogueHistoryResponse(
+            success=True,
+            message="대화 기록 조회 성공",
+            history=history
+        )
 
     except Exception as e:
         # 데이터베이스 오류 또는 기타 예외 처리
