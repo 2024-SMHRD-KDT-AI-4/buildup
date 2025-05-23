@@ -109,15 +109,15 @@ async def checkpw(check_data: CheckPWRequest):
         result = await database.fetch_one(check_sql, values={"user_id": check_data.user_id})
 
         if result is None:
-            return JoinResponse(success=False, message="User not found.")  # 사용자 없음
+            return CheckPWResponse(success=False, message="User not found.")  # 사용자 없음
         
         stored_hashed_pw = result["user_pw"]
 
         # 입력 비밀번호와 저장된 해시 비교
         if ps.verify(check_data.user_pw, stored_hashed_pw):
-            return JoinResponse(success=True, message=check_data.user_id)  # 비밀번호 일치
+            return CheckPWResponse(success=True, message=check_data.user_id)  # 비밀번호 일치
         else:
-            return JoinResponse(success=False, message="Invalid password.")  # 비밀번호 불일치
+            return CheckPWResponse(success=False, message="Invalid password.")  # 비밀번호 불일치
 
     except Exception as e:
         print(f"데이터베이스 오류 발생: {e}")
