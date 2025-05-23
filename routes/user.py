@@ -15,6 +15,8 @@ from schemas import (
     LoginRequest,
     LoginResponse,
     User,
+    CheckPWRequest,
+    CheckPWResponse
 )
 
 
@@ -91,3 +93,30 @@ async def join(join_data: JoinRequest):
     except Exception as e:
         print(f"데이터베이스 오류 발생: {e}")
         raise HTTPException(status_code=500, detail="회원가입 중 오류가 발생했습니다.") # 500 Internal Server Error
+    
+
+@router.post("/check-pw", response_model=CheckPWResponse)
+async def checkpw(check_data: CheckPWRequest):
+    # print("join in with:", join_data.user_id)
+
+    # Check if user_id or user_email already exists
+    check_sql = """
+    SELECT user_id FROM tb_user WHERE user_id = :user_id and user_pw = :user_pw
+    """
+    argon_join_pw = ps.hash(check_data.user_pw)
+    
+
+    try:
+        check_pw = await database.fetch_one(check_sql, values={"user_id": check_data.user_id, "user_pw": argon_join_pw})
+
+        if check_pw:
+            return JoinResponse(success=True, message=check_data.user_id) # success와 user_id를 함께 반환
+        else:
+            return JoinResponse(success=False, message=check_data.user_id) # fail와 user_id를 함께 반환
+
+    except Exception as e:
+        print(f"데이터베이스 오류 발생: {e}")
+        raise HTTPException(status_code=500, detail="회원가입 중 오류가 발생했습니다.") # 500 Internal Server Error
+
+
+

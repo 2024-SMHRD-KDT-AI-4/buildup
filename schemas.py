@@ -32,6 +32,16 @@ class LoginResponse(BaseModel):
     message: str
     user: User = None  # None은 로그인이 실패한 경우를 대비한 기본값
 
+# 비밀번호 체크 요청 데이터 모델
+class CheckPWRequest(BaseModel):
+    user_id: str
+    user_pw: str
+
+# 비밀번호 체크 응답 데이터 모델
+class CheckPWResponse(BaseModel):
+    success: bool
+    message: str
+
 ## 챗봇 요청 데이터 모델
 class ChatBotRequest(BaseModel):
     user_id: str
