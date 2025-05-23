@@ -37,14 +37,15 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup():
+    print("Server startup - Initializing resources")
     print("DB연결완료")
     await database.connect()
 
 @app.on_event("shutdown")
 async def shutdown():
     print("DB연결해제")
+    print("Server shutdown - Cleaning up resources")
     await database.disconnect()
-
 
 
 build_path = os.path.join(os.path.dirname(__file__), "../build")
