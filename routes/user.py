@@ -5,6 +5,7 @@ from database import database  # database.py에서 인스턴스를 가져오기
 from sqlalchemy import text
 from argon2 import PasswordHasher
 from argon2 import exceptions
+from argon2.exceptions import VerifyMismatchError
 # from dotenv import load_dotenv
 # load_dotenv()
 
@@ -100,28 +101,27 @@ async def join(join_data: JoinRequest):
 @router.post("/check-pw", response_model=CheckPWResponse)
 async def checkpw(check_data: CheckPWRequest):
 
-
     check_sql = """
     SELECT user_pw FROM tb_user WHERE user_id = :user_id
     """
     try:
-        # 데이터베이스에서 해시된 비밀번호 가져오기
         result = await database.fetch_one(check_sql, values={"user_id": check_data.user_id})
 
         if result is None:
-            return CheckPWResponse(success=False, message="User not found.")  # 사용자 없음
-        
+            return CheckPWResponse(success=False, message="User not found.")
+
         stored_hashed_pw = result["user_pw"]
 
-        # 입력 비밀번호와 저장된 해시 비교
-        if ps.verify(check_data.user_pw, stored_hashed_pw):
-            return CheckPWResponse(success=True, message=check_data.user_id)  # 비밀번호 일치
-        else:
-            return CheckPWResponse(success=False, message="Invalid password.")  # 비밀번호 불일치
+        try:
+            # 비밀번호 검증
+            ps.verify(stored_hashed_pw, check_data.user_pw)  # 순서 주의: verify(hashed, plain)
+            return CheckPWResponse(success=True, message=check_data.user_id)
+        except VerifyMismatchError:
+            return CheckPWResponse(success=False, message="Invalid password.")
 
     except Exception as e:
         print(f"데이터베이스 오류 발생: {e}")
-        raise HTTPException(status_code=500, detail="회원가입 중 오류가 발생했습니다.") # 500 Internal Server Error
+        raise HTTPException(status_code=500, detail="서버 내부 오류가 발생했습니다.")
 
 
 
