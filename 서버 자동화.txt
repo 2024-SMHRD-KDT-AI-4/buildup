@@ -1,0 +1,29 @@
+1. Bash 스크립트로 자동화
+스크립트 파일 생성
+
+프로젝트 디렉토리에서 start_server.sh 파일을 생성합니다:
+
+
+nano start_server.sh
+
+
+#!/bin/bash
+
+# Navigate to project directory
+cd /home/ec2-user/buildupBack || exit
+
+# Activate virtual environment (필요하면 추가)
+source /home/ec2-user/buildupBack/venv/bin/activate
+
+# Start Uvicorn server
+uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+
+
+
+스크립트에 실행 권한 부여 (한번만 하면됨)
+chmod +x start_server.sh
+
+
+
+스크립트 실행
+./start_server.sh
