@@ -1,3 +1,4 @@
+import argon2
 from fastapi import APIRouter, HTTPException
 #from routes.user import router as user_router  # routes 폴더에서 user.py의 router 가져오기
 from database import database  # database.py에서 인스턴스를 가져오기
@@ -22,6 +23,7 @@ from schemas import (
 
 router = APIRouter()
 
+# 비밀번호 해시와 검증 기능을 수행하는 객체를 생성
 ps = PasswordHasher()
 # 유저 접속 단
 
@@ -97,22 +99,25 @@ async def join(join_data: JoinRequest):
 
 @router.post("/check-pw", response_model=CheckPWResponse)
 async def checkpw(check_data: CheckPWRequest):
-    # print("join in with:", join_data.user_id)
 
-    # Check if user_id or user_email already exists
+
     check_sql = """
-    SELECT user_id FROM tb_user WHERE user_id = :user_id and user_pw = :user_pw
+    SELECT user_pw FROM tb_user WHERE user_id = :user_id
     """
-    argon_join_pw = ps.hash(check_data.user_pw)
-    
-
     try:
-        check_pw = await database.fetch_one(check_sql, values={"user_id": check_data.user_id, "user_pw": argon_join_pw})
+        # 데이터베이스에서 해시된 비밀번호 가져오기
+        result = await database.fetch_one(check_sql, values={"user_id": check_data.user_id})
 
-        if check_pw:
-            return JoinResponse(success=True, message=check_data.user_id) # success와 user_id를 함께 반환
+        if result is None:
+            return JoinResponse(success=False, message="User not found.")  # 사용자 없음
+        
+        stored_hashed_pw = result["user_pw"]
+
+        # 입력 비밀번호와 저장된 해시 비교
+        if ps.verify(check_data.user_pw, stored_hashed_pw):
+            return JoinResponse(success=True, message=check_data.user_id)  # 비밀번호 일치
         else:
-            return JoinResponse(success=False, message=check_data.user_id) # fail와 user_id를 함께 반환
+            return JoinResponse(success=False, message="Invalid password.")  # 비밀번호 불일치
 
     except Exception as e:
         print(f"데이터베이스 오류 발생: {e}")
