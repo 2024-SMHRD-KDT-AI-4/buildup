@@ -6,16 +6,3 @@ __pycache__/
 # Ignore environment settings
 .env
 .venv/
-
-# Ignore log files
-*.log
-
-# Ignore system files
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
-
-# Ignore build files
-build/
-dist/

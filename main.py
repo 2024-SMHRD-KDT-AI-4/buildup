@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException ,Request
 from routes.user import router as user_router  # routes 폴더에서 user.py의 router 가져오기
 from routes.upload import router as upload_router  # routes 폴더에서 user.py의 router 가져오기
 from routes.chatbot import router as chatbot_router  # routes 폴더에서 user.py의 router 가져오기
+from routes.analysis import router as analysis_router  # routes 폴더에서 user.py의 router 가져오기
 from database import database  # database.py에서 인스턴스를 가져오기
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,6 +27,7 @@ app = FastAPI()
 app.include_router(user_router, prefix="/user")
 app.include_router(upload_router, prefix="/images")
 app.include_router(chatbot_router, prefix="/chatbot")
+app.include_router(analysis_router, prefix="/analysis")
 
 app.add_middleware(
     CORSMiddleware,

@@ -1,0 +1,5 @@
+테스트
+
+마스터 브랜치 사용 금지
+
+git branch -d master

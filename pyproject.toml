@@ -1,0 +1,38 @@
+[project]
+name = "buildupBack" 
+version = "0.1.0"
+description = "빌드업 백엔드"
+authors = [
+    {name = "KIO", email = "kanginoh@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "opencv-python (>=4.11.0.86,<5.0.0.0)",
+    "dlib (>=19.24.9,<20.0.0)",
+    "imutils (>=0.5.4,<0.6.0)",
+    "scikit-learn (>=1.6.1,<2.0.0)",
+    "numpy (>=2.2.6,<3.0.0)",
+    "matplotlib (>=3.10.3,<4.0.0)",
+    "scikit-image (>=0.25.2,<0.26.0)",
+    "colormath (>=3.0.0,<4.0.0)",
+    "fastapi (>=0.115.12,<0.116.0)",
+    "uvicorn[standard] (>=0.34.2,<0.35.0)",
+    "python-multipart",
+    "databases[mysql]",
+    "aiomysql",
+    "argon2-cffi",
+    "boto3",
+    "python-dotenv"
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.dependencies]
+ShowMeTheColor = { path = "ShowMeTheColor/src" }
+
+
+[tool.poetry]
+package-mode = false
