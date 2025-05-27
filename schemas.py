@@ -73,6 +73,12 @@ class PresignedUrlResponse(BaseModel):
     message: str
     presigned_url: str = None
 
+# 이미지 업로드 API 요청 모델 
+class ImageUploadRequest(BaseModel):
+    user_id: str
+    created_at: datetime
+
+
 # 이미지 업로드 API 응답 모델 
 class ImageUploadResponse(BaseModel):
     success: bool  # 업로드 성공 여부 (True/False)

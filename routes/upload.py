@@ -1,12 +1,19 @@
-from fastapi import APIRouter, HTTPException ,UploadFile, File
+from datetime import datetime  # 올바른 import 구문
+import sys
+import tempfile
+from fastapi import APIRouter, Form, HTTPException ,UploadFile, File
 import boto3
 import os
 import logging
 from typing import Annotated
-
+from typing import Dict, Any  # 추가
 from fastapi.responses import JSONResponse
 import httpx
-# 수정된 임포트 (직접 임포트)
+
+sys.path.append(os.path.abspath("ShowMeTheColor/src"))
+
+# 응답 및 요청 모델 정의 (FastAPI Pydantic) 임포트
+from ShowMeTheColor.src.personal_color_analysis import personal_color
 from schemas import (
     PresignedUrlRequest,
     PresignedUrlResponse,
@@ -41,6 +48,61 @@ logger = logging.getLogger(__name__)
 # 배포 환경에서는 실제 퍼스널 컬러 서버의 URL로 변경해야 합니다.
 
 # 이미지 업로드 API 엔드포인트 정의
+
+@router.post("/upload-and-analyze", response_model=Dict[str, Any])
+async def upload_and_analyze_image(file: UploadFile = File(...), description: str = Form(...)):
+    try:
+        contents = await file.read()
+        # file_name = file.filename
+        # s3_key = f"images/{file_name}"
+        # 현재 시간을 ISO 8601 형식으로 생성
+        # 현재 시간을 datetime 객체로 저장 (DB 저장용)
+        db_timestamp = datetime.now()
+
+
+        # 파일 이름에 사용할 간결한 시간 포맷
+        currentTime = db_timestamp.strftime('%y%m%dT%H%M%S')  # 예: 250527T150000
+        file_name = f"{currentTime}_{file.filename}"
+
+        s3_key = f"images/{file_name}"
+        s3_client.put_object(
+            Bucket=S3_BUCKET_NAME,
+            Key=s3_key,
+            Body=contents
+        )
+        s3_url = f"https://{S3_BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
+
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_file.write(contents)
+            temp_filepath = temp_file.name
+
+        try:
+            analysis_result_tone = personal_color.analysis(temp_filepath)
+        except Exception as e:
+            logging.error(f"Personal color analysis failed: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to analyze the image for personal color. Please try again later."
+            )
+
+        return {
+            "success": True,
+            "message": "Image uploaded and analyzed successfully.",
+            "s3_url": s3_url,
+            "created_at": currentTime,
+            "personal_color_tone": analysis_result_tone,
+            "db_timestamp": db_timestamp.isoformat(),  # ISO 8601 형식으로 반환 (DB 저장시 적합)
+            "requester":description
+        }
+
+    except Exception as e:
+        logging.error(f"Error during upload and analyze: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Error occurred during upload and analyze process.")
+
+
+
+
+
 
 @router.post("/upload/image_base64", response_model=ImageUploadResponse)
 async def upload_image(file: Annotated[UploadFile, File()]):

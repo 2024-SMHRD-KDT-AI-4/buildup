@@ -23,7 +23,8 @@ dependencies = [
     "aiomysql",
     "argon2-cffi",
     "boto3",
-    "python-dotenv"
+    "python-dotenv",
+    "httpx"
 ]
 
 [build-system]

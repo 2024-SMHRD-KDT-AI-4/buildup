@@ -3,6 +3,7 @@ from routes.user import router as user_router  # routes 폴더에서 user.py의 
 from routes.upload import router as upload_router  # routes 폴더에서 user.py의 router 가져오기
 from routes.chatbot import router as chatbot_router  # routes 폴더에서 user.py의 router 가져오기
 from routes.analysis import router as analysis_router  # routes 폴더에서 user.py의 router 가져오기
+from routes.analysis import router as analysis_router  # routes 폴더에서 user.py의 router 가져오기
 from database import database  # database.py에서 인스턴스를 가져오기
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
