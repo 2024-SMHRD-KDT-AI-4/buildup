@@ -91,6 +91,7 @@ async def upload_and_analyze_image(file: UploadFile = File(...), description: st
             "s3_url": s3_url,
             "created_at": currentTime,
             "personal_color_tone": analysis_result_tone,
+            "skin_analysis": "임시",
             "db_timestamp": db_timestamp.isoformat(),  # ISO 8601 형식으로 반환 (DB 저장시 적합)
             "requester":description
         }

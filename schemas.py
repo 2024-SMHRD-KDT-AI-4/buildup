@@ -1,7 +1,8 @@
 import datetime
 from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
-from datetime import datetime # <--- ENSURE YOU HAVE THIS SPECIFIC IMPORT
+from datetime import datetime
+from datetime import date # Date 타입은 datetime 모듈의 date를 import 해야 합니다.
 
 # 회원가입 요청 데이터 모델
 class JoinRequest(BaseModel):
@@ -9,6 +10,8 @@ class JoinRequest(BaseModel):
     user_pw: str
     user_nickname: str
     user_email: str
+    user_sex: Literal["남성", "여성"]  # Literal 타입을 사용   
+    user_birthdate: date        
 
 # 회원가입 응답 데이터 모델
 class JoinResponse(BaseModel):

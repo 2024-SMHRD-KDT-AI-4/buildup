@@ -77,12 +77,11 @@ async def join(join_data: JoinRequest):
         raise HTTPException(status_code=409, detail="이미 존재하는 아이디 또는 이메일입니다.") # 409 Conflict
 
     argon_join_pw = ps.hash(join_data.user_pw)
-
     
     # SQL 쿼리 작성 (해싱 제외)
     sql = """
-    INSERT INTO tb_user(user_id, user_pw, user_nickname, user_email)
-    VALUES (:user_id, :user_pw, :user_nickname, :user_email)
+    INSERT INTO tb_user(user_id, user_pw, user_nickname, user_email, user_sex, user_birthdate)
+    VALUES (:user_id, :user_pw, :user_nickname, :user_email, :user_sex, :user_birthdate)
     """
 
     try:
@@ -90,7 +89,9 @@ async def join(join_data: JoinRequest):
             "user_id": join_data.user_id,
             "user_pw": argon_join_pw,
             "user_nickname": join_data.user_nickname,
-            "user_email": join_data.user_email
+            "user_email": join_data.user_email,
+            "user_sex": join_data.user_sex,
+            "user_birthdate": join_data.user_birthdate
         })
         return JoinResponse(success=True, message=join_data.user_id) # success와 user_id를 함께 반환
     except Exception as e:

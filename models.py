@@ -1,4 +1,5 @@
-from sqlalchemy import JSON, Column, Integer, String, ForeignKey, DateTime, Text
+from datetime import date # Date 타입은 datetime 모듈의 date를 import 해야 합니다.
+from sqlalchemy import JSON, Column, Date, Integer, String, ForeignKey, DateTime, Text
 from sqlalchemy.dialects.mysql import ENUM
 from sqlalchemy.sql import func
 from sqlalchemy.ext.declarative import declarative_base
@@ -18,6 +19,8 @@ class User(Base):
     user_pw = Column(String(255), nullable=False)
     user_nickname = Column(String(50), nullable=False, index=True)  # MUL 인덱스 반영
     user_email = Column(String(50), nullable=False)
+    user_sex = Column(ENUM('남성', '여성'), nullable=False)   
+    user_birthdate = Column(Date, nullable=False) 
     created_at = Column(DateTime, default=func.now(), nullable=False)
 
     # 관계 예시
