@@ -10,8 +10,8 @@ class JoinRequest(BaseModel):
     user_pw: str
     user_nickname: str
     user_email: str
-    user_sex: Literal["남성", "여성"]  # Literal 타입을 사용   
-    user_birthdate: date        
+    user_sex: Literal["남성", "여성"]
+    user_birthdate: str        
 
 # 회원가입 응답 데이터 모델
 class JoinResponse(BaseModel):

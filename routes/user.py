@@ -66,7 +66,7 @@ async def login(login_data: LoginRequest):
 
 @router.post("/join", response_model=JoinResponse)
 async def join(join_data: JoinRequest):
-    # print("join in with:", join_data.user_id)
+    print("join in with:", join_data)
 
     # Check if user_id or user_email already exists
     check_sql = """
@@ -74,7 +74,8 @@ async def join(join_data: JoinRequest):
     """
     existing_user = await database.fetch_one(check_sql, values={"user_id": join_data.user_id, "user_email": join_data.user_email})
     if existing_user:
-        raise HTTPException(status_code=409, detail="이미 존재하는 아이디 또는 이메일입니다.") # 409 Conflict
+        #raise HTTPException(status_code=409, detail="이미 존재하는 아이디 또는 이메일입니다.") # 409 Conflict
+        return JoinResponse(success=False, message="이미 존재하는 아이디 또는 이메일입니다.(409)") # False와 user_id를 함께 반환
 
     argon_join_pw = ps.hash(join_data.user_pw)
     
@@ -85,6 +86,7 @@ async def join(join_data: JoinRequest):
     """
 
     try:
+        print(f"데이터베이스 수정시도")
         await database.execute(sql, values={
             "user_id": join_data.user_id,
             "user_pw": argon_join_pw,
