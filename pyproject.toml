@@ -1,5 +1,5 @@
 [project]
-name = "buildupBack" 
+name = "buildupBack"
 version = "0.1.0"
 description = "빌드업 백엔드"
 authors = [
@@ -24,7 +24,11 @@ dependencies = [
     "argon2-cffi",
     "boto3",
     "python-dotenv",
-    "httpx"
+    "httpx",
+    "torch", # PyTorch 추가
+    "torchvision", # PyTorch 비전 라이브러리 추가
+    "pandas",
+    "imblearn (>=0.0,<0.1)",
 ]
 
 [build-system]

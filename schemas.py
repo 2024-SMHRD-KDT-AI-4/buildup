@@ -35,6 +35,16 @@ class LoginResponse(BaseModel):
     message: str
     user: User = None  # None은 로그인이 실패한 경우를 대비한 기본값
 
+# 아이디 체크 요청 데이터 모델
+class CheckIDRequest(BaseModel):
+    user_id: str
+
+# 아이디 체크 응답 데이터 모델
+class CheckIDResponse(BaseModel):
+    success: bool
+    possible: bool
+    message: str    
+
 # 비밀번호 체크 요청 데이터 모델
 class CheckPWRequest(BaseModel):
     user_id: str

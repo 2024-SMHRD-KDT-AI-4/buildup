@@ -17,6 +17,8 @@ from schemas import (
     LoginRequest,
     LoginResponse,
     User,
+    CheckIDRequest,
+    CheckIDResponse,
     CheckPWRequest,
     CheckPWResponse
 )
@@ -121,6 +123,24 @@ async def checkpw(check_data: CheckPWRequest):
             return CheckPWResponse(success=True, message=check_data.user_id)
         except VerifyMismatchError:
             return CheckPWResponse(success=False, message="Invalid password.")
+
+    except Exception as e:
+        print(f"데이터베이스 오류 발생: {e}")
+        raise HTTPException(status_code=500, detail="서버 내부 오류가 발생했습니다.")
+    
+@router.post("/check-id", response_model=CheckIDResponse)
+async def checkpw(check_data: CheckIDRequest):
+
+    check_sql = """
+    SELECT user_id FROM tb_user WHERE user_id = :user_id
+    """
+    try:
+        result = await database.fetch_one(check_sql, values={"user_id": check_data.user_id})
+
+        if result is None:
+            return CheckIDResponse(success=True, possible=True, message="This ID can.")
+        else:
+            return CheckIDResponse(success=True, possible=False, message="This ID can`t.")
 
     except Exception as e:
         print(f"데이터베이스 오류 발생: {e}")
