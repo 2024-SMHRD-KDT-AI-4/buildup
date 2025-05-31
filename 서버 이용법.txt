@@ -3,3 +3,13 @@
 마스터 브랜치 사용 금지
 
 git branch -d master
+
+
+
+
+poetry 설치
+
+poetry path 수행하기(user 환경변수)
+
+
+(Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
