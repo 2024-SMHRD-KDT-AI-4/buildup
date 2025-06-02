@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 import sys
 import tempfile
 from fastapi import APIRouter, Form, HTTPException, UploadFile, File
@@ -7,6 +8,7 @@ import os
 import logging
 from typing import Annotated
 from typing import Dict, Any, List
+from database import database  # database.py에서 인스턴스를 가져오기
 from fastapi.responses import JSONResponse
 import httpx # 현재 코드에서는 직접 사용되지 않지만, 기존에 포함되어 있었으므로 유지합니다.
 import uuid
@@ -74,17 +76,22 @@ except Exception as e:
 # API 엔드포인트: 이미지 업로드 및 분석 통합
 @router.post("/upload-and-analyze")
 async def upload_and_analyze(
-    file: UploadFile = File(...),
-    s3_url: str = "",
-    description: str = "피부 분석 요청",
-    # db: Session = Depends(get_db) # <--- 이 부분을 주석 처리했습니다.
+    file: UploadFile = File(...),  # 업로드된 파일
+    user_id: str = Form(...)  # 사용자 ID 필드 추가
 ):
+    
     if not skin_analyzer_instance:
         raise HTTPException(status_code=500, detail="Skin analysis service is not available. Please check server logs.")
 
-    currentTime = datetime.now().isoformat() # <--- 이렇게 수정해야 합니다.
-    # db_timestamp = datetime.datetime.now() # <--- 데이터베이스 관련 변수도 주석 처리했습니다.
-    
+        # 디버그용 출력
+    print(f"User ID: {user_id}")
+
+    # 현재 시간 가져오기 및 포맷팅
+    timestamp = datetime.now().strftime("%Y.%m.%d.%H.%M.%S")
+
+    original_filename = file.filename  # 업로드된 파일명 (ex: "selfie.jpg")
+    extension = os.path.splitext(original_filename)[1]  # ".jpg"
+
     temp_filepath = None 
 
     try:
@@ -125,32 +132,66 @@ async def upload_and_analyze(
             logger.error(f"Unexpected error during skin analysis for {temp_filepath}: {e}", exc_info=True)
             skin_analysis_results["predicted_skin_type"] = "피부 분석 중 예상치 못한 오류 발생"
         
-        # --- 데이터베이스 저장 로직 (아래 전체 블록을 주석 처리했습니다) ---
-        # try:
-        #     new_analysis = AnalysisResult(
-        #         s3_url=s3_url,
-        #         personal_color_tone=json.dumps(analysis_result_tone),
-        #         skin_analysis_results=json.dumps(skin_analysis_results),
-        #         created_at=db_timestamp,
-        #         requester=description
-        #     )
-        #     db.add(new_analysis)
-        #     db.commit()
-        #     db.refresh(new_analysis)
-        #     logger.info("Analysis results saved to database.")
-        # except Exception as e:
-        #     logger.error(f"Failed to save analysis results to DB: {e}", exc_info=True)
-        # --- 데이터베이스 저장 로직 끝 ---
+        # 파일 이름 및 예상 S3 URL 생성
+        file_name = f"{timestamp}_{user_id}{extension}"
+        s3_key = f"images/{file_name}"
+        s3_url = f"https://{S3_BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
 
+        # 데이터베이스에 결과 삽입
+        try:
+            sql_insert = """
+            INSERT INTO tb_analysis (user_id, analysis_model, file_path, skin_tone, personal_color, analysis_result, created_at)
+            VALUES (:user_id, :analysis_model, :file_path, :skin_tone, :personal_color, :analysis_result, :created_at)
+            """
+            await database.execute(
+                sql_insert,
+                values={
+                    "user_id": user_id,
+                    "analysis_model": "SkinAnalyzer v2",
+                    "file_path": s3_url,
+                    "skin_tone": skin_analysis_results.get("predicted_skin_type", "Unknown"),
+                    "personal_color": (
+                        analysis_result_tone.get("tone", "N/A")
+                        if isinstance(analysis_result_tone, dict)
+                        else analysis_result_tone if isinstance(analysis_result_tone, str)
+                        else "N/A"
+                    ),
+                    # JSON 직렬화
+                    "analysis_result": json.dumps(skin_analysis_results),
+                    "created_at": datetime.now(),
+                }
+            )
+            logger.info("Database insert successful for analysis results.")
+        except Exception as db_error:
+            logger.error(f"Database insert failed: {db_error}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail="An error occurred while saving analysis results to the database. Please try again."
+            )
+
+        # S3에 이미지 업로드
+        try:
+            s3_client.put_object(
+                Bucket=S3_BUCKET_NAME,
+                Key=s3_key,
+                Body=contents
+            )
+            logger.info(f"Image '{file_name}' uploaded to S3: {s3_url}")
+        except Exception as s3_error:
+            logger.error(f"S3 upload failed: {s3_error}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail="An error occurred while uploading the image to S3. Please try again."
+            )
+        
         return JSONResponse(content={
             "success": True,
             "message": "Image uploaded and analyzed successfully.",
             "s3_url": s3_url,
-            "created_at": currentTime,
+            "created_at": timestamp,
             "personal_color_tone": analysis_result_tone,
             "skin_analysis": skin_analysis_results,
-            # "db_timestamp": db_timestamp.isoformat(), # <--- 주석 처리했습니다.
-            "requester":description
+            "requester":user_id
         })
 
     except Exception as e:
@@ -197,6 +238,19 @@ async def upload_image(file: Annotated[UploadFile, File()]):
 
 @router.post("/get/presigned-url", response_model=PresignedUrlResponse)
 async def get_presigned_url(request_data: PresignedUrlRequest):
+    try:
+        presigned_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': S3_BUCKET_NAME, 'Key': request_data.object_key},
+            ExpiresIn=3600  # URL 유효 시간 (초) - 필요에 따라 조정
+        )
+        return {"success": True, "message": "서명된 URL 생성 성공", "presigned_url": presigned_url}
+    except Exception as e:
+        logging.error(f"서명된 URL 생성 오류: {e}")
+        raise HTTPException(status_code=500, detail="서명된 URL 생성 실패")
+    
+@router.post("/analysis-history", response_model=PresignedUrlResponse)
+async def get_analysis_history(request_data: PresignedUrlRequest):
     try:
         presigned_url = s3_client.generate_presigned_url(
             'get_object',
