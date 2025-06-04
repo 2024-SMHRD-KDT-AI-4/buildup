@@ -32,6 +32,7 @@ class User(BaseModel):
     birthdate: date
     joinDate: datetime
     role: str
+    
 # 로그인 응답 데이터 모델
 class LoginResponse(BaseModel):
     success: bool
