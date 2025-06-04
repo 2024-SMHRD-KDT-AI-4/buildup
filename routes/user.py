@@ -1,3 +1,4 @@
+import logging
 import argon2
 from fastapi import APIRouter, HTTPException
 #from routes.user import router as user_router  # routes 폴더에서 user.py의 router 가져오기
@@ -20,7 +21,9 @@ from schemas import (
     CheckIDRequest,
     CheckIDResponse,
     CheckPWRequest,
-    CheckPWResponse
+    CheckPWResponse,
+    PastAnalysisRequest,
+    PastAnalysisResponse
 )
 
 
@@ -36,7 +39,7 @@ async def login(login_data: LoginRequest):
 
     # SQL 쿼리 작성
     sql = """
-    SELECT user_id, user_pw, user_nickname FROM tb_user WHERE user_id = :user_id
+    SELECT * FROM tb_user WHERE user_id = :user_id
     """
     
     # SQL 실행
@@ -59,6 +62,10 @@ async def login(login_data: LoginRequest):
             user=User(
                 id=user["user_id"],
                 nickname=user["user_nickname"],
+                email = user["user_email"],
+                sex = user["user_sex"],
+                birthdate= user["user_birthdate"],
+                joinDate= user["created_at"],
                 role=role
             )
         )
@@ -148,3 +155,29 @@ async def checkpw(check_data: CheckIDRequest):
 
 
 
+@router.post("/get/past-analysis", response_model=PastAnalysisResponse)
+async def get_past_analysis(request_data: PastAnalysisRequest):
+    user_id = request_data.user_id
+
+    check_sql = """
+    SELECT * FROM tb_analysis WHERE user_id = :user_id
+    """
+
+    try:
+        # 여러 행을 가져오기 위해 fetch_all 사용
+        results = await database.fetch_all(check_sql, values={"user_id": user_id})
+
+        if not results:
+            return PastAnalysisResponse(success=True, message="No records found", data=None)
+
+        # JSON serializable 형태로 변환
+        results_list = [dict(row) for row in results]
+
+        return PastAnalysisResponse(
+            success=True,
+            message="Records retrieval successful",
+            data=results_list
+        )
+    except Exception as e:
+        logging.error(f"Database error while retrieving records for user_id={user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error occurred.")

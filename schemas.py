@@ -27,8 +27,11 @@ class LoginRequest(BaseModel):
 class User(BaseModel):
     id: str
     nickname: str
+    email: str
+    sex: str
+    birthdate: date
+    joinDate: datetime
     role: str
-
 # 로그인 응답 데이터 모델
 class LoginResponse(BaseModel):
     success: bool
@@ -126,3 +129,13 @@ class AnalyzeS3ImageResponse(BaseModel):
     message: str
     filename: str
     personal_color_tone: str # 분석 결과가 문자열이라고 가정
+
+# 요청 모델 정의
+class PastAnalysisRequest(BaseModel):
+    user_id: str
+
+# 응답 모델 정의 (선택 사항)
+class PastAnalysisResponse(BaseModel):
+    success: bool
+    message: str
+    data: list[dict] | None

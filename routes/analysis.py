@@ -22,6 +22,7 @@ sys.path.append(os.path.abspath("SkinAnalysis"))
 # 응답 및 요청 모델 정의 (FastAPI Pydantic) 임포트
 from ShowMeTheColor.src.personal_color_analysis import personal_color
 from schemas import (
+
     PresignedUrlRequest,
     PresignedUrlResponse,
     ImageUploadResponse
@@ -207,3 +208,4 @@ async def get_presigned_url(request_data: PresignedUrlRequest):
     except Exception as e:
         logging.error(f"서명된 URL 생성 오류: {e}")
         raise HTTPException(status_code=500, detail="서명된 URL 생성 실패")
+    
