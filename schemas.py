@@ -70,6 +70,21 @@ class UpdatePWResponse(BaseModel):
     success: bool
     message: str
 
+# 비밀번호 변경 요청 데이터 모델
+class UpdateNicknameRequest(BaseModel):
+    user_id: str
+    user_new_nickname: str
+
+# 비밀번호 변경 응답 데이터 모델
+class ServerResponse(BaseModel):
+    success: bool
+    message: str
+
+
+
+##################################
+
+
 
 ## 챗봇 요청 데이터 모델
 class ChatBotRequest(BaseModel):

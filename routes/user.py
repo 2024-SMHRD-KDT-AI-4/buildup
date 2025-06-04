@@ -17,6 +17,8 @@ from schemas import (
     JoinResponse,
     LoginRequest,
     LoginResponse,
+    ServerResponse,
+    UpdateNicknameRequest,
     User,
     CheckIDRequest,
     CheckIDResponse,
@@ -185,7 +187,7 @@ async def get_past_analysis(request_data: PastAnalysisRequest):
         raise HTTPException(status_code=500, detail="Internal server error occurred.")
     
 
-@router.post("/update/pw", response_model=UpdatePWResponse)
+@router.post("/update-pw", response_model=UpdatePWResponse)
 async def checkpw(check_data: UpdatePWRequest):
     check_sql = "SELECT user_pw FROM tb_user WHERE user_id = :user_id"
     update_sql = "UPDATE tb_user SET user_pw = :user_pw WHERE user_id = :user_id"
@@ -209,6 +211,26 @@ async def checkpw(check_data: UpdatePWRequest):
         })
 
         return UpdatePWResponse(success=True, message="Password changed successfully.")
+
+    except Exception as e:
+        # 에러 로그 기록
+        print(f"데이터베이스 오류 발생: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+    
+@router.post("/update-nickname", response_model=ServerResponse)
+async def checkpw(check_data: UpdateNicknameRequest):
+
+    update_sql = "UPDATE tb_user SET user_nickname = :user_nickname WHERE user_id = :user_id"
+
+    try:
+
+        # 새로운 비밀번호 해시화 및 업데이트
+        await database.execute(update_sql, values={
+            "user_id": check_data.user_id,
+            "user_nickname": check_data.user_new_nickname
+        })
+
+        return ServerResponse(success=True, message="Nickname changed successfully.")
 
     except Exception as e:
         # 에러 로그 기록
