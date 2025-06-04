@@ -32,7 +32,7 @@ class User(BaseModel):
     birthdate: date
     joinDate: datetime
     role: str
-    
+
 # 로그인 응답 데이터 모델
 class LoginResponse(BaseModel):
     success: bool
@@ -58,6 +58,18 @@ class CheckPWRequest(BaseModel):
 class CheckPWResponse(BaseModel):
     success: bool
     message: str
+
+# 비밀번호 변경 요청 데이터 모델
+class UpdatePWRequest(BaseModel):
+    user_id: str
+    user_pw: str
+    user_new_pw: str
+
+# 비밀번호 변경 응답 데이터 모델
+class UpdatePWResponse(BaseModel):
+    success: bool
+    message: str
+
 
 ## 챗봇 요청 데이터 모델
 class ChatBotRequest(BaseModel):

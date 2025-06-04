@@ -23,7 +23,9 @@ from schemas import (
     CheckPWRequest,
     CheckPWResponse,
     PastAnalysisRequest,
-    PastAnalysisResponse
+    PastAnalysisResponse,
+    UpdatePWRequest,
+    UpdatePWResponse
 )
 
 
@@ -181,3 +183,34 @@ async def get_past_analysis(request_data: PastAnalysisRequest):
     except Exception as e:
         logging.error(f"Database error while retrieving records for user_id={user_id}: {e}")
         raise HTTPException(status_code=500, detail="Internal server error occurred.")
+    
+
+@router.post("/update/pw", response_model=UpdatePWResponse)
+async def checkpw(check_data: UpdatePWRequest):
+    check_sql = "SELECT user_pw FROM tb_user WHERE user_id = :user_id"
+    update_sql = "UPDATE tb_user SET user_pw = :user_pw WHERE user_id = :user_id"
+
+    try:
+        # 현재 비밀번호 확인
+        result = await database.fetch_one(check_sql, values={"user_id": check_data.user_id})
+        if result is None:
+            return UpdatePWResponse(success=False, message="User not found.")
+
+        stored_hashed_pw = result["user_pw"]
+        # 비밀번호 검증 (hashed와 plain text의 순서를 정확히 유지)
+        if not ps.verify(stored_hashed_pw, check_data.user_pw):
+            return UpdatePWResponse(success=False, message="Password not matched.")
+
+        # 새로운 비밀번호 해시화 및 업데이트
+        hashed_new_pw = ps.hash(check_data.user_new_pw)
+        await database.execute(update_sql, values={
+            "user_id": check_data.user_id,
+            "user_pw": hashed_new_pw,
+        })
+
+        return UpdatePWResponse(success=True, message="Password changed successfully.")
+
+    except Exception as e:
+        # 에러 로그 기록
+        print(f"데이터베이스 오류 발생: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
