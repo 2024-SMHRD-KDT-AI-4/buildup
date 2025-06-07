@@ -1,6 +1,6 @@
 # chatbot.py
 
-import datetime
+from datetime import datetime
 import os
 import logging # 로깅 모듈 추가
 from fastapi import APIRouter, HTTPException
@@ -227,45 +227,47 @@ async def dialogue_handler(request_data: ChatBotRequest):
 # 상세한 화장품 추천을 받을 때 사용합니다.
 @router.post("/skin_advice", response_model=SkinAdviceResponse)
 async def skin_advice_handler(advice_request: SkinAdviceRequest):
-    logger.info(f"피부 조언 요청 받음: 사용자 ID {advice_request.user_id}, 피부 타입 {advice_request.predicted_skin_type}, 퍼스널 컬러 {advice_request.personal_color_tone}")
+    logger.info(
+        f"피부 조언 요청 받음: 사용자 ID {advice_request.user_id}, "
+        f"피부 타입 {advice_request.predicted_skin_type}, "
+        f"퍼스널 컬러 {advice_request.personal_color_tone}"
+    )
 
     if not gemini_model:
         logger.error("Gemini 모델이 로드되지 않아 피부 조언을 생성할 수 없습니다.")
-        raise HTTPException(status_code=503, detail="AI 모델을 현재 사용할 수 없습니다. 관리자에게 문의하세요.")
+        raise HTTPException(
+            status_code=503, detail="AI 모델을 현재 사용할 수 없습니다. 관리자에게 문의하세요."
+        )
 
-    # 상세 프롬프트 구성 (이전 답변에서 사용된 상세 프롬프트 사용)
     prompt = create_gemini_prompt(
-        user_input=f"{advice_request.predicted_skin_type} 피부와 {advice_request.personal_color_tone} 퍼스널 컬러에 맞는 화장품 추천", # 사용자의 요청을 명시적으로 구성
+        user_input=f"{advice_request.predicted_skin_type} 피부와 {advice_request.personal_color_tone} 퍼스널 컬러에 맞는 화장품 추천",
         skin_type=advice_request.predicted_skin_type,
-        # personal_color_tone은 create_gemini_prompt 내부에서 피부 타입 프롬프트에 활용될 수 있도록 전달하거나,
-        # 프롬프트 문자열 자체에 advice_request.personal_color_tone을 직접 삽입할 수 있습니다.
-        # 여기서는 create_gemini_prompt 함수가 skin_type을 받아서 해당 프롬프트를 사용하도록 되어 있습니다.
-        # 필요하다면 create_gemini_prompt 함수를 수정하여 personal_color_tone도 명시적으로 다루도록 할 수 있습니다.
     )
-    
-    # 화장품 추천 프롬프트는 상세하므로, 이전 대화 내용은 여기서는 생략하거나 다르게 활용할 수 있습니다.
-    # 지금 create_gemini_prompt는 skin_type이 주어지면 화장품 추천 프롬프트를 사용합니다.
 
-    advice_text = "죄송합니다. 현재 맞춤형 피부 조언을 드리기 어렵습니다." # 기본 오류 메시지
+    advice_text: str = "죄송합니다. 현재 맞춤형 피부 조언을 드리기 어렵습니다."
     try:
-        logger.info(f"Gemini API 요청 프롬프트 (피부 조언용, 일부): {prompt[:300]}...")
+        logger.info(f"Gemini API 요청 프롬프트 (일부): {prompt[:100]}...")
         response = await gemini_model.generate_content_async(prompt)
 
-        if not response.candidates or not response.candidates[0].content.parts:
-            logger.warning("Gemini API로부터 유효한 응답(candidates)을 받지 못했습니다. (피부 조언)")
-        else:
-            advice_text = response.text
-            logger.info(f"Gemini API 피부 조언 응답 성공 (일부): {advice_text[:200]}...")
-    
+        if not response or not hasattr(response, "text") or not response.text:
+            logger.warning("Gemini API로부터 유효한 응답을 받지 못했습니다.")
+            raise HTTPException(status_code=500, detail="AI 모델 응답이 유효하지 않습니다.")
+
+        advice_text = response.text
+        logger.info(f"Gemini API 피부 조언 응답 성공 (일부): {advice_text[:200]}...")
+    except HTTPException as http_exc:
+        logger.error(f"HTTP 예외 발생: {http_exc.detail}")
+        raise
     except Exception as e:
-        logger.error(f"Gemini API 피부 조언 호출 또는 응답 처리 중 오류 발생: {e}", exc_info=True)
+        logger.error(f"Gemini API 호출 중 오류 발생: {str(e)}", exc_info=True)
         if "quota" in str(e).lower():
-             advice_text = "현재 많은 사용자가 서비스를 이용 중입니다. 잠시 후 다시 시도해주시면 감사하겠습니다."
+            advice_text = "현재 많은 사용자가 서비스를 이용 중입니다. 잠시 후 다시 시도해주시면 감사하겠습니다."
+        else:
+            raise HTTPException(
+                status_code=500, detail="AI 모델 호출 중 문제가 발생했습니다."
+            )
 
-    # 이 조언을 tb_chatbot에 저장할 수도 있습니다 (선택 사항)
-    response_timestamp = datetime.datetime.now()
-    # ... (필요시 DB 저장 로직 추가) ...
-
+    response_timestamp = datetime.now().isoformat()
     return SkinAdviceResponse(
         user_id=advice_request.user_id,
         advice=advice_text,
