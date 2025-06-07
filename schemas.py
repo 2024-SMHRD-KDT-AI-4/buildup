@@ -27,6 +27,10 @@ class LoginRequest(BaseModel):
 class User(BaseModel):
     id: str
     nickname: str
+    email: str
+    sex: str
+    birthdate: date
+    joinDate: datetime
     role: str
 
 # 로그인 응답 데이터 모델
@@ -54,6 +58,33 @@ class CheckPWRequest(BaseModel):
 class CheckPWResponse(BaseModel):
     success: bool
     message: str
+
+# 비밀번호 변경 요청 데이터 모델
+class UpdatePWRequest(BaseModel):
+    user_id: str
+    user_pw: str
+    user_new_pw: str
+
+# 비밀번호 변경 응답 데이터 모델
+class UpdatePWResponse(BaseModel):
+    success: bool
+    message: str
+
+# 비밀번호 변경 요청 데이터 모델
+class UpdateNicknameRequest(BaseModel):
+    user_id: str
+    user_new_nickname: str
+
+# 비밀번호 변경 응답 데이터 모델
+class ServerResponse(BaseModel):
+    success: bool
+    message: str
+
+
+
+##################################
+
+
 
 ## 챗봇 요청 데이터 모델
 class ChatBotRequest(BaseModel):
@@ -138,3 +169,12 @@ class SkinAdviceResponse(BaseModel):
     user_id: str
     advice: str # Gemini API로부터 받은 추천 내용 전체 텍스트
     created_at: datetime # 조언 생성 시각
+# 요청 모델 정의
+class PastAnalysisRequest(BaseModel):
+    user_id: str
+
+# 응답 모델 정의 (선택 사항)
+class PastAnalysisResponse(BaseModel):
+    success: bool
+    message: str
+    data: list[dict] | None

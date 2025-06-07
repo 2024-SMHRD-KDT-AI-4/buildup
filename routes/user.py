@@ -1,3 +1,4 @@
+import logging
 import argon2
 from fastapi import APIRouter, HTTPException
 #from routes.user import router as user_router  # routes 폴더에서 user.py의 router 가져오기
@@ -16,11 +17,17 @@ from schemas import (
     JoinResponse,
     LoginRequest,
     LoginResponse,
+    ServerResponse,
+    UpdateNicknameRequest,
     User,
     CheckIDRequest,
     CheckIDResponse,
     CheckPWRequest,
-    CheckPWResponse
+    CheckPWResponse,
+    PastAnalysisRequest,
+    PastAnalysisResponse,
+    UpdatePWRequest,
+    UpdatePWResponse
 )
 
 
@@ -36,7 +43,7 @@ async def login(login_data: LoginRequest):
 
     # SQL 쿼리 작성
     sql = """
-    SELECT user_id, user_pw, user_nickname FROM tb_user WHERE user_id = :user_id
+    SELECT * FROM tb_user WHERE user_id = :user_id
     """
     
     # SQL 실행
@@ -59,6 +66,10 @@ async def login(login_data: LoginRequest):
             user=User(
                 id=user["user_id"],
                 nickname=user["user_nickname"],
+                email = user["user_email"],
+                sex = user["user_sex"],
+                birthdate= user["user_birthdate"],
+                joinDate= user["created_at"],
                 role=role
             )
         )
@@ -148,3 +159,80 @@ async def checkpw(check_data: CheckIDRequest):
 
 
 
+@router.post("/get/past-analysis", response_model=PastAnalysisResponse)
+async def get_past_analysis(request_data: PastAnalysisRequest):
+    user_id = request_data.user_id
+
+    check_sql = """
+    SELECT * FROM tb_analysis WHERE user_id = :user_id
+    """
+
+    try:
+        # 여러 행을 가져오기 위해 fetch_all 사용
+        results = await database.fetch_all(check_sql, values={"user_id": user_id})
+
+        if not results:
+            return PastAnalysisResponse(success=True, message="No records found", data=None)
+
+        # JSON serializable 형태로 변환
+        results_list = [dict(row) for row in results]
+
+        return PastAnalysisResponse(
+            success=True,
+            message="Records retrieval successful",
+            data=results_list
+        )
+    except Exception as e:
+        logging.error(f"Database error while retrieving records for user_id={user_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error occurred.")
+    
+
+@router.post("/update-pw", response_model=UpdatePWResponse)
+async def checkpw(check_data: UpdatePWRequest):
+    check_sql = "SELECT user_pw FROM tb_user WHERE user_id = :user_id"
+    update_sql = "UPDATE tb_user SET user_pw = :user_pw WHERE user_id = :user_id"
+
+    try:
+        # 현재 비밀번호 확인
+        result = await database.fetch_one(check_sql, values={"user_id": check_data.user_id})
+        if result is None:
+            return UpdatePWResponse(success=False, message="User not found.")
+
+        stored_hashed_pw = result["user_pw"]
+        # 비밀번호 검증 (hashed와 plain text의 순서를 정확히 유지)
+        if not ps.verify(stored_hashed_pw, check_data.user_pw):
+            return UpdatePWResponse(success=False, message="Password not matched.")
+
+        # 새로운 비밀번호 해시화 및 업데이트
+        hashed_new_pw = ps.hash(check_data.user_new_pw)
+        await database.execute(update_sql, values={
+            "user_id": check_data.user_id,
+            "user_pw": hashed_new_pw,
+        })
+
+        return UpdatePWResponse(success=True, message="Password changed successfully.")
+
+    except Exception as e:
+        # 에러 로그 기록
+        print(f"데이터베이스 오류 발생: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+    
+@router.post("/update-nickname", response_model=ServerResponse)
+async def checkpw(check_data: UpdateNicknameRequest):
+
+    update_sql = "UPDATE tb_user SET user_nickname = :user_nickname WHERE user_id = :user_id"
+
+    try:
+
+        # 새로운 비밀번호 해시화 및 업데이트
+        await database.execute(update_sql, values={
+            "user_id": check_data.user_id,
+            "user_nickname": check_data.user_new_nickname
+        })
+
+        return ServerResponse(success=True, message="Nickname changed successfully.")
+
+    except Exception as e:
+        # 에러 로그 기록
+        print(f"데이터베이스 오류 발생: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
