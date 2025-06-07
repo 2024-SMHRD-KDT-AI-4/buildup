@@ -184,15 +184,20 @@ async def upload_and_analyze(
                 detail="An error occurred while uploading the image to S3. Please try again."
             )
         
-        return JSONResponse(content={
+        current_analysis_time = datetime.now() # 응답에 포함될 생성 시간
+        # --- 여기가 수정될 부분 ---
+        response_content = {
             "success": True,
             "message": "Image uploaded and analyzed successfully.",
             "s3_url": s3_url,
-            "created_at": timestamp,
+            "created_at": current_analysis_time.isoformat(), # ISO 형식으로 변환
             "personal_color_tone": analysis_result_tone,
             "skin_analysis": skin_analysis_results,
-            "requester":user_id
-        })
+            "user_id": user_id
+        }
+        print("백엔드에서 실제 응답할 내용:", response_content) # 디버깅 로그 추가
+        
+        return JSONResponse(content=response_content) # 변수를 사용하여 응답
 
     except Exception as e:
         logging.error(f"Error during upload and analyze: {e}", exc_info=True)
@@ -224,11 +229,15 @@ async def upload_image(file: Annotated[UploadFile, File()]):
         s3_url = f"https://{S3_BUCKET_NAME}.s3.amazonaws.com/{s3_key}"
 
         # 성공 응답 반환
-        return {
-            "success": True,
-            "message": f"이미지 '{file_name}' 업로드 성공",
-            "s3_url": s3_url
-        }
+        current_upload_time = datetime.now()
+        return JSONResponse(content={
+        "success": True,
+        "message": "Image uploaded successfully.",
+        "s3_url": s3_url,
+        "created_at": current_upload_time.isoformat()
+        # user_id, personal_color_tone, skin_analysis 등은 이 엔드포인트에서 제공하지 않으므로 제거
+    })
+    
     except Exception as e:
         # 오류 발생 시 로깅
         logging.error(f"S3 이미지 업로드 오류: {e}")

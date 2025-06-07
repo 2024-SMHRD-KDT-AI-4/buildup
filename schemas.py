@@ -1,7 +1,7 @@
-import datetime
+# import datetime
 from typing import List, Literal, Optional
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime 
 from datetime import date # Date 타입은 datetime 모듈의 date를 import 해야 합니다.
 
 # 회원가입 요청 데이터 모델
@@ -126,3 +126,15 @@ class AnalyzeS3ImageResponse(BaseModel):
     message: str
     filename: str
     personal_color_tone: str # 분석 결과가 문자열이라고 가정
+
+class SkinAdviceRequest(BaseModel):
+    user_id: str # 사용자 식별
+    predicted_skin_type: str
+    personal_color_tone: str # React에서 넘어온 personal_color_tone
+    # s3_url: Optional[str] = None # 필요하다면 이미지 URL도 전달 가능
+    # created_at_from_analysis: datetime.datetime # 분석 결과 생성 시각, 필요하다면 전달
+
+class SkinAdviceResponse(BaseModel):
+    user_id: str
+    advice: str # Gemini API로부터 받은 추천 내용 전체 텍스트
+    created_at: datetime # 조언 생성 시각

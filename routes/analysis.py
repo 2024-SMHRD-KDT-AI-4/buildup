@@ -154,7 +154,7 @@ async def upload_and_analyze_image(file: UploadFile = File(...), description: st
             "personal_color_tone": analysis_result_tone,
             "skin_analysis": skin_analysis_results, # 피부 분석 결과 추가
             "db_timestamp": db_timestamp.isoformat(),
-            "requester":description
+            "requester":user_id
         })
 
     except Exception as e:
