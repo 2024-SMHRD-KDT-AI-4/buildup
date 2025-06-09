@@ -235,7 +235,7 @@ async def skin_advice_handler(advice_request: SkinAdviceRequest):
 
     # 상세 프롬프트 구성 (이전 답변에서 사용된 상세 프롬프트 사용)
     prompt = create_gemini_prompt(
-        user_input=f"{advice_request.predicted_skin_type} 피부와 {advice_request.personal_color_tone} 퍼스널 컬러에 맞는 화장품 추천", # 사용자의 요청을 명시적으로 구성
+        user_input=f"{advice_request.predicted_skin_type} 피부에 맞는 기초 화장품 추천", # 사용자의 요청을 명시적으로 구성
         skin_type=advice_request.predicted_skin_type,
         # personal_color_tone은 create_gemini_prompt 내부에서 피부 타입 프롬프트에 활용될 수 있도록 전달하거나,
         # 프롬프트 문자열 자체에 advice_request.personal_color_tone을 직접 삽입할 수 있습니다.
