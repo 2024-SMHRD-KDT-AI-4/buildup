@@ -79,16 +79,12 @@ async def get_recent_dialogue_history(user_id: str, limit: int = 5) -> str:
     except Exception as e:
         logger.error(f"대화 기록 조회 중 오류 발생 (user_id: {user_id}): {e}", exc_info=True)
         return "" # 오류 발생 시 빈 문자열 반환
-
-def create_gemini_prompt(user_input: str, skin_type: Optional[str] = None, dialogue_history: str = "") -> str:
+def create_gemini_prompt(skin_type: str, user_input: str, dialogue_history: str = "") -> str:
     """
-    사용자 입력과 상황에 따라 Gemini API 프롬프트를 생성합니다.
+    피부 타입 기반 분석 데이터를 제공하는 프롬프트 생성.
     """
-    if skin_type and skin_type.lower() != "알 수 없음" and skin_type.lower() != "없음":
-        # 피부 타입 정보가 있고, 유효한 경우 -> 화장품 추천 프롬프트
-        # (이전에 사용자님이 작성해주신 상세 프롬프트를 여기에 사용합니다)
-        # personal_color_tone 정보도 필요하다면 skin_type처럼 인자로 받아 프롬프트에 포함시킵니다.
-        logger.info(f"피부 타입 기반 추천 프롬프트 생성: {skin_type}")
+    if skin_type and skin_type.lower() not in ["알 수 없음", "없음"]:
+        logger.info(f"피부 타입 분석 프롬프트 생성: {skin_type}")
         prompt = f"""
 1. 당신은 사용자의 피부 타입 "{skin_type}"에 따라 기초 화장품을 추천하고 설명해주는 올리브영 직원입니다.
 2. 형식은 "당신의 피부 타입은 🌼{skin_type}🌼 입니다. {skin_type} 피부 타입은 {{자세한 특징}}을 가지고 있어 {{주의점}}에 유의해야 합니다. 당신을 위한 기초 화장품과 사용 순서를 알려드릴게요" 로 시작해주세요.
@@ -104,24 +100,74 @@ def create_gemini_prompt(user_input: str, skin_type: Optional[str] = None, dialo
 
 챗봇 답변:
         """
+        return prompt
     else:
-        # 일반 대화 프롬프트
-        logger.info("일반 대화 프롬프트 생성")
-        prompt = f"""
-        당신은 "SkinThera"라는 뷰티 및 피부 건강 관련 서비스를 제공하는 AI 챗봇입니다.
-        당신의 역할은 사용자에게 친절하고, 전문적이며, 도움이 되는 답변을 한국어로 제공하는 것입니다.
-        다음은 사용자와의 이전 대화 내용입니다. 이를 참고하여 현재 사용자의 질문에 가장 적절하고 자연스러운 답변을 생성해주세요.
-        만약 이전 대화 내용이 없다면, 현재 질문에만 집중하여 답변해주세요.
-        매우 구체적이고 개인화된 분석(예: 특정 제품의 상세 비교, 이미지 기반 분석)은 사용자가 별도의 전문 기능을 사용하도록 안내해주세요.
+        logger.warning("유효한 피부 타입이 제공되지 않아 분석 데이터를 생성할 수 없습니다.")
+        return "피부 타입 정보가 필요합니다. 피부 타입을 입력해주세요."
+    
+def create_chatbot_prompt(user_input: str, dialogue_history: str = "") -> str:
+    """
+    일반 대화를 처리하는 챗봇 프롬프트 생성.
+    """
+    logger.info("일반 대화 프롬프트 생성")
+    prompt = f"""
+당신은 "SkinThera"라는 뷰티 및 피부 건강 관련 서비스를 제공하는 AI 챗봇입니다.
+당신의 역할은 사용자에게 친절하고, 전문적이며, 도움이 되는 답변을 한국어로 제공하는 것입니다.
+다음은 사용자와의 이전 대화 내용입니다. 이를 참고하여 현재 사용자의 질문에 가장 적절하고 자연스러운 답변을 생성해주세요.
+만약 이전 대화 내용이 없다면, 현재 질문에만 집중하여 답변해주세요.
+매우 구체적이고 개인화된 분석(예: 특정 제품의 상세 비교, 이미지 기반 분석)은 사용자가 별도의 전문 기능을 사용하도록 안내해주세요.
 
-        이전 대화:
-        {dialogue_history if dialogue_history else "없음"}
+이전 대화:
+{dialogue_history if dialogue_history else "없음"}
 
-        현재 사용자 질문: {user_input}
+현재 사용자 질문: {user_input}
 
-        챗봇 답변:
-        """
-    return prompt
+챗봇 답변:
+"""
+    return prompt    
+
+# def create_gemini_prompt(user_input: str, skin_type: Optional[str] = None, dialogue_history: str = "") -> str:
+#     """
+#     사용자 입력과 상황에 따라 Gemini API 프롬프트를 생성합니다.
+#     """
+#     if skin_type and skin_type.lower() != "알 수 없음" and skin_type.lower() != "없음":
+#         # 피부 타입 정보가 있고, 유효한 경우 -> 화장품 추천 프롬프트
+#         # (이전에 사용자님이 작성해주신 상세 프롬프트를 여기에 사용합니다)
+#         # personal_color_tone 정보도 필요하다면 skin_type처럼 인자로 받아 프롬프트에 포함시킵니다.
+#         logger.info(f"피부 타입 기반 추천 프롬프트 생성: {skin_type}")
+#         prompt = f"""
+# 1. 당신은 사용자의 피부 타입 "{skin_type}"에 따라 기초 화장품을 추천하고 설명해주는 올리브영 직원입니다.
+# 2. 형식은 "당신의 피부 타입은 🌼{skin_type}🌼 입니다. {skin_type} 피부 타입은 {{자세한 특징}}을 가지고 있어 {{주의점}}에 유의해야 합니다. 당신을 위한 기초 화장품과 사용 순서를 알려드릴게요" 로 시작해주세요.
+# 3. 고객에게 화장품을 추천하고 구매하도록 유도하는 것이 목표입니다. 친근하며 부드럽고 설득력 있는 톤으로, 가독성 좋게 설명해주세요. 화장품 초보도 이해하도록 제품 필요성과 기능, 바르는 순서를 설명합니다. 피부 타입별 특징과 연결하여 설명하고, 피부 타입별 대표 키워드 3가지를 포함하여 이야기해주세요.
+# 4. 올리브영 입점 브랜드 중심으로 각 제품은 7만원 이하로 추천합니다. 추천 목록은 "🧼클렌저, 💦스킨/토너, 💧앰플/세럼, 🧴로션, 🧈크림, 🛀마스크팩" 입니다. 제품 이미지 대신 "[카테고리: 제품명]" 형식으로 표시하고, 가격대, 올리브영 입점 여부("O" 또는 "확인 필요")를 포함하여 전체 답변은 1500자 이내로 요약해주세요.
+# 6. 마무리로 꼭 필요한 기초 제품 3가지(클렌저, 팩 제외) 이름 목록과 바르는 순서, 그리고 "단계 별로 가볍게 두드려 모두 흡수시켜 주신 후, 다음 제품을 발라주세요." 멘트를 포함해주세요.
+# 7. 마지막은 살갑고 친절한 멘트 한 줄로 마무리해주세요.
+
+# 이전 대화:
+# {dialogue_history if dialogue_history else "없음"}
+
+# 현재 사용자 요청: {user_input} (이 사용자는 "{skin_type}" 피부입니다.)
+
+# 챗봇 답변:
+#         """
+#     else:
+#         # 일반 대화 프롬프트
+#         logger.info("일반 대화 프롬프트 생성")
+#         prompt = f"""
+#         당신은 "SkinThera"라는 뷰티 및 피부 건강 관련 서비스를 제공하는 AI 챗봇입니다.
+#         당신의 역할은 사용자에게 친절하고, 전문적이며, 도움이 되는 답변을 한국어로 제공하는 것입니다.
+#         다음은 사용자와의 이전 대화 내용입니다. 이를 참고하여 현재 사용자의 질문에 가장 적절하고 자연스러운 답변을 생성해주세요.
+#         만약 이전 대화 내용이 없다면, 현재 질문에만 집중하여 답변해주세요.
+#         매우 구체적이고 개인화된 분석(예: 특정 제품의 상세 비교, 이미지 기반 분석)은 사용자가 별도의 전문 기능을 사용하도록 안내해주세요.
+
+#         이전 대화:
+#         {dialogue_history if dialogue_history else "없음"}
+
+#         현재 사용자 질문: {user_input}
+
+#         챗봇 답변:
+#         """
+#     return prompt
 
 @router.post("/dialogue", response_model=ChatBotResponse)
 async def dialogue_handler(request_data: ChatBotRequest):
@@ -178,7 +224,7 @@ async def dialogue_handler(request_data: ChatBotRequest):
             # (다른 피부 타입 키워드 추가)
 
             dialogue_history = await get_recent_dialogue_history(request_data.user_id)
-            prompt = create_gemini_prompt(user_input, skin_type=detected_skin_type, dialogue_history=dialogue_history)
+            prompt = create_chatbot_prompt(user_input, dialogue_history=dialogue_history)
             
             logger.info(f"Gemini API 요청 프롬프트 (일부): {prompt[:300]}...")
             response = await gemini_model.generate_content_async(prompt)
@@ -197,7 +243,7 @@ async def dialogue_handler(request_data: ChatBotRequest):
 
     # 3. 챗봇의 답변을 DB에 저장
     # (오류 발생 시에도 chatbot_answer_text는 기본 오류 메시지 또는 특정 오류 메시지를 가짐)
-    response_timestamp = datetime.datetime.now() # 답변 생성 및 저장 시점의 시간
+    response_timestamp = datetime.now() # 답변 생성 및 저장 시점의 시간
     chatbot_insert_sql = """
     INSERT INTO tb_chatbot(user_id, chatbot_role, chatbot_text, created_at)
     VALUES (:user_id, :chatbot_role, :chatbot_text, :created_at)
